@@ -4,6 +4,12 @@ pluginManagement {
         gradlePluginPortal()
         google()
     }
+    plugins {
+        id("com.android.application") version "8.11.1"
+        id("org.jetbrains.kotlin.android") version "2.0.21"
+        id("org.jetbrains.kotlin.jvm") version "2.0.21"
+        id("org.jetbrains.kotlin.plugin.compose") version "2.0.21"
+    }
 }
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
@@ -16,6 +22,7 @@ dependencyResolutionManagement {
 rootProject.name = "coroutines-study"
 
 include(":core")
+include(":app")
 include(":examples:01_basics")
 include(":examples:02_context_and_dispatchers")
 include(":examples:03_cancellation_and_timeouts")
