@@ -4,6 +4,8 @@ plugins {
 }
 
 subprojects {
+    if (name == "app") return@subprojects
+
     apply(plugin = "org.jetbrains.kotlin.jvm")
 
     group = "com.way.coroutines"
@@ -18,4 +20,3 @@ subprojects {
         useJUnitPlatform()
     }
 }
-
