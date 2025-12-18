@@ -4,6 +4,7 @@
 
 ## Как запускать
 
+- Открыть "страницу" со всеми примерами: `./gradlew :app:runLessonsPage`.
 - Запустить определённый блок: `./gradlew :app:runLesson01Basics`, `./gradlew :app:runLesson04Structured`, и т.д.
 - Прогнать все примеры тестов: `./gradlew :app:test`.
 - Все примеры лежат в модуле `app` (JVM, без Android SDK и `GlobalScope`).

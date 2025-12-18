@@ -11,22 +11,24 @@ kotlin {
 dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.debug)
+    implementation(libs.kotlinx.coroutines.test)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.test)
 }
 
 val lessonMains = mapOf(
-    "Lesson01Basics" to "com.way.samurai.lessons.Lesson01BasicsKt",
-    "Lesson02Context" to "com.way.samurai.lessons.Lesson02ContextAndDispatchersKt",
-    "Lesson03Cancellation" to "com.way.samurai.lessons.Lesson03CancellationAndTimeoutsKt",
-    "Lesson04Structured" to "com.way.samurai.lessons.Lesson04StructuredConcurrencyKt",
-    "Lesson05Exceptions" to "com.way.samurai.lessons.Lesson05ExceptionsAndSupervisionKt",
-    "Lesson06FlowVsChannel" to "com.way.samurai.lessons.Lesson06FlowVsChannelKt",
-    "Lesson07ConcurrencyPrimitives" to "com.way.samurai.lessons.Lesson07ConcurrencyPrimitivesKt",
-    "Lesson08Performance" to "com.way.samurai.lessons.Lesson08PerformanceKt",
-    "Lesson09Testing" to "com.way.samurai.lessons.Lesson09TestingKt",
-    "Lesson10AndroidPatterns" to "com.way.samurai.lessons.Lesson10AndroidPatternsKt",
+    "LessonsPage" to "com.way.samurai.LessonsPage",
+    "Lesson01Basics" to "com.way.samurai.lessons.Lesson01BasicsLauncher",
+    "Lesson02Context" to "com.way.samurai.lessons.Lesson02ContextLauncher",
+    "Lesson03Cancellation" to "com.way.samurai.lessons.Lesson03CancellationLauncher",
+    "Lesson04Structured" to "com.way.samurai.lessons.Lesson04StructuredLauncher",
+    "Lesson05Exceptions" to "com.way.samurai.lessons.Lesson05ExceptionsLauncher",
+    "Lesson06FlowVsChannel" to "com.way.samurai.lessons.Lesson06FlowVsChannelLauncher",
+    "Lesson07ConcurrencyPrimitives" to "com.way.samurai.lessons.Lesson07ConcurrencyPrimitivesLauncher",
+    "Lesson08Performance" to "com.way.samurai.lessons.Lesson08PerformanceLauncher",
+    "Lesson09Testing" to "com.way.samurai.lessons.Lesson09TestingLauncher",
+    "Lesson10AndroidPatterns" to "com.way.samurai.lessons.Lesson10AndroidPatternsLauncher",
 )
 
 lessonMains.forEach { (taskName, mainClassName) ->
