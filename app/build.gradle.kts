@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.way.samurai"
-    compileSdk = 36
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.way.samurai"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -34,7 +34,7 @@ android {
     buildFeatures {
         compose = true
     }
-    buildToolsVersion = "35.0.0"
+    buildToolsVersion = "34.0.0"
 }
 
 dependencies {
