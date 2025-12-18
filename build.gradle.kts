@@ -1,12 +1,10 @@
 // Root build configuration for the coroutine study project.
 plugins {
-    id("org.jetbrains.kotlin.jvm") apply false
+    alias(libs.plugins.kotlin.jvm) apply false
 }
 
 subprojects {
-    if (name != "app") {
-        apply(plugin = "org.jetbrains.kotlin.jvm")
-    }
+    apply(plugin = "org.jetbrains.kotlin.jvm")
 
     group = "com.way.coroutines"
     version = "1.0.0"
@@ -20,3 +18,4 @@ subprojects {
         useJUnitPlatform()
     }
 }
+

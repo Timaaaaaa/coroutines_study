@@ -10,7 +10,18 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
-            <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/core" />
+            <option value="$PROJECT_DIR$/examples" />
+            <option value="$PROJECT_DIR$/examples/01_basics" />
+            <option value="$PROJECT_DIR$/examples/02_context_and_dispatchers" />
+            <option value="$PROJECT_DIR$/examples/03_cancellation_and_timeouts" />
+            <option value="$PROJECT_DIR$/examples/04_structured_concurrency" />
+            <option value="$PROJECT_DIR$/examples/05_exceptions_supervision" />
+            <option value="$PROJECT_DIR$/examples/06_flow_vs_channel" />
+            <option value="$PROJECT_DIR$/examples/07_concurrency_primitives" />
+            <option value="$PROJECT_DIR$/examples/08_performance" />
+            <option value="$PROJECT_DIR$/examples/09_testing" />
+            <option value="$PROJECT_DIR$/examples/10_android_patterns" />
           </set>
         </option>
       </GradleProjectSettings>
