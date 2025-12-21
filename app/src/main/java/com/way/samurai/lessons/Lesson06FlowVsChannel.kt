@@ -58,7 +58,7 @@ object Lesson06FlowVsChannel {
 
 object Lesson06FlowVsChannelLauncher {
     @JvmStatic
-    fun main(args: Array<String>) = runBlocking {
+    fun main(args: Array<String>): Unit = runBlocking {
         println("=== 06_flow_vs_channel ===")
         Lesson06FlowVsChannel.runDemo()
         Lesson06FlowVsChannel.bufferVsConflate()

@@ -31,7 +31,7 @@ object Lesson08Performance {
 
 object Lesson08PerformanceLauncher {
     @JvmStatic
-    fun main(args: Array<String>) = runBlocking {
+    fun main(args: Array<String>): Unit = runBlocking {
         println("=== 08_performance ===")
         println("CPU heavy result: ${Lesson08Performance.cpuHeavyCalculation()}")
         Lesson08Performance.ioBoundBatch(listOf("/profile", "/feed", "/messages"))
