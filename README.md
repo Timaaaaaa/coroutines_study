@@ -1,118 +1,165 @@
-# Coroutines study guide
+# Koin Study for Android (Basics → Best Practices)
 
-Практический набор примеров по ключевым темам Kotlin Coroutines. Каждая секция имеет собственный `main()` (см. Gradle-задачи `:app:runLessonXX...`) и покрыта тестами на основе `kotlinx-coroutines-test`.
+Учебный Android-проект на Kotlin, который показывает, как построить DI-архитектуру с Koin для небольшой фичи “Profile/Tasks”. Проект собирается как обычное Android-приложение (Compose UI) и содержит пошаговые задания, примеры анти-паттернов и тесты.
 
-## Как запускать
+## Структура проекта и Koin-модулей
 
-- Открыть "страницу" со всеми примерами: `./gradlew :app:runLessonsPage`.
-- Запустить определённый блок: `./gradlew :app:runLesson01Basics`, `./gradlew :app:runLesson04Structured`, и т.д.
-- Прогнать все примеры тестов: `./gradlew :app:test`.
-- Все примеры лежат в модуле `app` (JVM, без Android SDK и `GlobalScope`).
+**Файловая структура**
 
-## Структура примеров
+- `app/src/main/java/com/way/samurai/koinstudy`
+  - `di/Modules.kt` — все Koin-модули (core, network, data, feature).
+  - `data/` — `FakeApi`, `TaskRemoteDataSource`, `UserRepositoryImpl`, диспетчеры.
+  - `domain/` — модели, интерфейсы репозитория, use case.
+  - `presentation/` — `MainActivity`, Compose-экран, `UserViewModel`, примеры scope/parameters.
+- `app/src/test` — unit-тесты с koin-test (мок/override, checkModules).
+- `app/src/androidTest` — smoke-тест и пример Koin в инструментальных тестах.
 
-- `app/src/main/java/com/way/samurai/lessons/Lesson01Basics.kt` — стартовые конструкции (`runBlocking`, `coroutineScope`).
-- `Lesson02ContextAndDispatchers` — выбор диспетчеров, избегание лишних переключений.
-- `Lesson03CancellationAndTimeouts` — отмена, `withTimeout/withTimeoutOrNull`, `NonCancellable` только в `finally`.
-- `Lesson04StructuredConcurrency` — fan-out/fan-in c `async/awaitAll`.
-- `Lesson05ExceptionsAndSupervision` — разница `coroutineScope`/`supervisorScope`, `SupervisorJob`, `CoroutineExceptionHandler`.
-- `Lesson06FlowVsChannel` — отличие cold/hot, `StateFlow` для UI state, `SharedFlow` для событий, `Channel` для очереди задач, backpressure/buffer/conflate.
-- `Lesson07ConcurrencyPrimitives` — `Mutex`, `Semaphore`, atomics, примеры rate/concurrency limit.
-- `Lesson08Performance` — CPU vs I/O, кооперативная отмена (`yield()`/`ensureActive()`), избегание лишних `withContext`.
-- `Lesson09Testing` — `runTest`, `StandardTestDispatcher`, управление временем.
-- `Lesson10AndroidPatterns` — псевдо-ViewModel без Android SDK с `SupervisorJob` и `flatMapLatest` для поиска.
-- Общие реалистичные сущности: `FakeApi` (рандомные фейлы+`delay`), `FakeDb` (медленный доступ), `Repository` (кэш + сеть + база), пагинация с отменой предыдущих запросов через `flatMapLatest` в `UseCases`.
+**Koin-модули**
 
-## Правила корутин в продакшне (чек-лист)
+- `coreModule` — базовые зависимости (Android context/resources, диспетчеры).
+- `networkModule` — Retrofit + Moshi + HttpLoggingInterceptor + `FakeApi`.
+- `dataModule` — `TaskRemoteDataSource`, `UserRepositoryImpl` (bind к `UserRepository`).
+- `featureTasksModule`
+  - UseCases: `GetUserUseCase`, `RefreshUserUseCase`.
+  - Scope-пример: `scope(named(TaskWizardTracker.SCOPE_NAME)) { scoped { TaskWizardTracker() } }`.
+  - ViewModels: `UserViewModel` и параметризованный `UserDetailsViewModel` (через `parametersOf`).
 
-1. Строго структурная конкуррентность: дети живут в переданном scope, никакого `GlobalScope`.
-2. Используйте `coroutineScope`/`supervisorScope` для группировки работы и автоматической отмены.
-3. Fan-out/fan-in делайте через `async {}` + `awaitAll()` для независимых подзадач.
-4. Отмена — это нормальный контроль потока: не логируйте `CancellationException` как ошибку.
-5. Всегда освобождайте ресурсы в `finally` + `withContext(NonCancellable)` только для закрытия ресурсов.
-6. Ставьте таймауты на небезопасные операции (`withTimeout`, `withTimeoutOrNull`).
-7. Разделяйте диспетчеры: `Dispatchers.Default` для CPU, `Dispatchers.IO` для блокирующего I/O.
-8. Не переключайте диспетчер в tight loop; по возможности оставайтесь на одном до конца цепочки.
-9. Для UI состояния используйте `StateFlow`, для одноразовых событий — `SharedFlow`, для очереди задач — `Channel`.
-10. Добавляйте backpressure: `buffer`, `conflate`, `Semaphore`/`Mutex` для ограничений.
-11. Покрывайте конкурентную логику тестами через `runTest` и контролируемые диспетчеры.
-12. Для конкурентных наборов запросов используйте `Semaphore` для лимита параллельности и `Mutex` для критических секций.
-13. Не оборачивайте отмену/исключения в catch-all без повторного выброса `CancellationException`.
-14. Настраивайте `CoroutineName` и `CoroutineExceptionHandler` для дебага и читаемых логов.
-15. Держите корутины ближе к владельцу жизненного цикла (ViewModel/UseCase/репозиторий), а не в слоях утилит.
+## Что такое DI и зачем
 
-## Типовые анти-паттерны
+Внедрение зависимостей отделяет создание объектов от их использования. Это:
+- Упрощает тестирование (можно подменить зависимости).
+- Делает композицию зависимостей прозрачной.
+- Снижает связность слоёв и защищает домен от деталей платформы.
 
-- `GlobalScope.launch` для бизнес-логики — приводит к утечкам и неотслеживаемым ошибкам.
-- Неограниченный `launch` из UI без отмены/жизненного цикла.
-- Лишние `withContext(Dispatchers.IO)` вокруг уже неблокирующего кода.
-- Игнорирование отмены (бесконечные циклы без `yield()`/`ensureActive()`).
-- Логирование `CancellationException` как ошибки.
-- Принудительный `try/catch` вокруг `coroutineScope` без различия `CancellationException` и настоящих ошибок.
-- Горячий `Channel` без потребителя или без лимитов емкости (может привести к OOM).
-- Запуск большого числа `async` без сбора `awaitAll` (утечки и незавершённые работы).
+## Koin за 10 минут
 
-## Шпаргалка по диспетчерам
+1. Описать модуль:
+   ```kotlin
+   val coreModule = module {
+       singleOf(::AppDispatchers) { bind<DispatcherProvider>() }
+   }
+   ```
+2. Запустить Koin в `Application`:
+   ```kotlin
+   startKoin {
+       androidContext(this@KoinStudyApp)
+       androidLogger(androidLoggerLevel())
+       modules(coreModule, networkModule, dataModule, featureTasksModule)
+   }
+   ```
+3. Получить зависимости:
+   - В классе/функции: `get<FakeApi>()`.
+   - В Activity/Compose: `val vm: UserViewModel = getViewModel()`.
+4. ViewModel в Koin:
+   ```kotlin
+   viewModel { UserViewModel(get(), get(), get()) }
+   ```
+5. Параметры:
+   ```kotlin
+   viewModel { (userId: String) -> UserDetailsViewModel(userId, get()) }
+   // получение: getViewModel<UserDetailsViewModel> { parametersOf("42") }
+   ```
+6. Scope:
+   ```kotlin
+   scope(named(TaskWizardTracker.SCOPE_NAME)) {
+       scoped { TaskWizardTracker() }
+   }
+   // открытие scope: koin.createScope("wizard", named(TaskWizardTracker.SCOPE_NAME))
+   ```
 
-- `Dispatchers.Default` — CPU-bound, небольшие массивы данных, парсинг.
-- `Dispatchers.IO` — блокирующие вызовы (JDBC, файловая система, сеть через legacy API).
-- `Dispatchers.Main` — UI/главный поток (Android/Compose). В примерах используем Default как замену.
-- Избегайте частых прыжков между диспетчерами; переключайтесь только при смене природы работы.
+## Single vs Factory vs Scoped
 
-## Шпаргалка по Flow/Channel
+- `single` — долгоживущие (API, Repository, Retrofit, UseCase без состояния).
+- `factory` — лёгкие объекты без внутреннего состояния.
+- `scoped` — живут пока открыт scope (экран/фича/мастерка).
+- ViewModel в Koin использует специальную DSL `viewModel { ... }`, которая сама управляет жизненным циклом.
 
-- Flow — cold, создаёт работу на каждом подписчике. Хорош для запросов/выборок.
-- `StateFlow` — горячий, хранит последнее значение, подходит для UI state.
-- `SharedFlow` — горячий без состояния, подходит для событий (навигация, сообщения).
-- `Channel` — горячая очередь точка-точка; используйте буферы/`conflate`/`Semaphore` для backpressure.
-- Инструменты: `debounce`/`flatMapLatest` для отмены старых запросов (пример пагинации), `buffer` для разгрузки продюсера, `conflate` чтобы брать только последнее.
+## Как организованы слои и зависимости
 
-## Отмена и ресурсы
+- **presentation** → зависит только от **domain** (получает use cases и интерфейсы).
+- **domain** → чистый Kotlin, не знает о Koin/Android/Retrofit.
+- **data** → реализует интерфейсы domain (через `bind<UserRepository>()`), использует Koin для своих зависимостей.
+- **networkModule** предоставляет Retrofit/FakeApi, но UI не тянет эти зависимости напрямую.
 
-- Отмена — нормальный сценарий: не логируйте `CancellationException` как crash.
-- `NonCancellable` допустим только внутри `finally` для корректного закрытия ресурсов.
-- `withTimeout` / `withTimeoutOrNull` защищают от зависаний.
-- Для кооперативной отмены используйте `yield()` или `ensureActive()` в длинных циклах.
+Диаграмма зависимостей:
+`MainActivity -> UserViewModel -> (GetUserUseCase, RefreshUserUseCase) -> UserRepository (интерфейс) -> UserRepositoryImpl -> TaskRemoteDataSource -> FakeApi`
 
-## Ошибки и supervision
+## Анти-паттерны
 
-- `coroutineScope` отменяет всех детей при ошибке одного.
-- `supervisorScope` изолирует детей; используйте `SupervisorJob` для долгоживущих scope (ViewModel, UseCase), плюс `CoroutineExceptionHandler` для логов верхнего уровня.
-- Показывайте в логах, что child failure отменяет родителя, а supervisor позволяет пережить ошибку.
+- ❌ Service Locator и `GlobalContext.get()` в бизнес-логике.
+- ❌ ViewModel получает `Context` напрямую (используйте `androidContext()` только внутри DI-модулей).
+- ❌ Все зависимости в одном модуле без разделения по слоям/фичам.
+- ❌ `single` для короткоживущих объектов или тяжелые фабрики без необходимости.
+- ❌ Циклические зависимости между модулями/слоями.
+- ❌ Ленивые инжекции без понимания жизненного цикла (не держать `by inject()` в статических синглтонах без очистки).
 
-## Оптимизация
+## Best Practices (и как они реализованы)
 
-- Избегайте лишних `withContext` для чисто вычислительных функций — держите один диспетчер.
-- Не переключайте dispatcher внутри tight loop; лучше разово задать нужный.
-- `Dispatchers.Default` — CPU, `Dispatchers.IO` — блокирующий I/O.
-- Кооперативная отмена в циклах через `yield()`/`ensureActive()`.
-- `async` — когда нужен результат; `launch` — когда результат не нужен и важен fire-and-forget внутри scope.
+- Разделение модулей: `core`, `network`, `data`, `featureTasks`.
+- Интерфейсы в domain + `bind()` в DI для реализаций.
+- `single` для долгоживущих (`UserRepositoryImpl`, `FakeApi`, `Retrofit`), `factory` для use case.
+- UI-модуль не тянет сетевые классы напрямую — только use case.
+- Без `GlobalContext.get()` в бизнес-логике; старт Koin в `Application`.
+- ViewModel не знает о `Context`, зависимости приходят через Koin.
+- Scope-пример: `TaskWizardTracker` показывает, как ограничить жизненный цикл компонента.
+- Параметры: `UserDetailsViewModel` с `parametersOf(userId)`.
+- Избегаем циклов: domain не зависит от data, модули разнесены.
+- Lazy injection: используйте осознанно (здесь — только `getViewModel()` в UI, без хранения в долгоживущих синглтонах).
 
-## Debugging
+## Реалистичный кейс “Profile/Tasks”
 
-- Добавляйте `CoroutineName` в контекст, чтобы видеть человека читаемые имена в логах.
-- Подключён `kotlinx-coroutines-debug` — можно включить агент JVM (`-javaagent:kotlinx-coroutines-debug.jar`) для отслеживания стеков.
-- Логируйте контекст верхнего уровня через `coroutineContext` и `CoroutineExceptionHandler` (в примерах секции 05).
+- `FakeApi.getUser()` — имитирует сеть (delay + 20% ошибок).
+- `UserRepositoryImpl` — хранит `StateFlow<UserState>`, обновляет из `TaskRemoteDataSource`.
+- `GetUserUseCase` — поток состояний.
+- `RefreshUserUseCase` — триггер обновления.
+- `UserViewModel` — конвертирует `UserState` в `UserUiState` (Loading/Content/Error).
+- UI (`MainActivity` + Compose) — кнопка Load/Refresh и отображение состояния.
+- Cancellation/flow: `StateFlow` + `collectLatest` в ViewModel, отмена управляется `viewModelScope`.
 
-## Что под капотом (коротко)
+## Параметры и scope в коде
 
-- Каждая корутина — это state machine, которую компилятор раскладывает в класс с `suspend` меткой и продолжениями.
-- `suspend` функции возвращаются, не блокируя поток: продолжение откладывается в очередь выбранного `Dispatcher`.
-- Отмена хранится в `Job`, и диспетчеры/библиотечные `suspend`-функции проверяют `isActive` чтобы бросить `CancellationException`.
-- Структурная конкуррентность строит дерево `Job`, где родитель автоматически отменяет детей при сбое (кроме supervisor).
+- Параметры: `UserDetailsViewModel(userId)` объявлен в `featureTasksModule`, берётся через `parametersOf("42")`.
+- Scope: `TaskWizardTracker` создаётся внутри `scope(named(TaskWizardTracker.SCOPE_NAME))`, подходит для экранов-мастерок или фич-флоу.
 
-## Пагинация и отмена старых запросов
+## Ошибки и диагностика
 
-- В `UseCases` используется `flatMapLatest` + `debounce`, чтобы новая строка поиска отменяла предыдущий запрос к `FakeApi`.
-- `Repository` кэширует страницы (`InMemoryCache`) и использует `FakeDb`/`FakeApi` с задержками и рандомными ошибками.
+- Типовая ошибка: `NoBeanDefFoundException` — нет биндинга или забыли модуль в `startKoin`.
+- Диагностика:
+  - `androidLogger()` или `androidLoggerLevel()` для логов.
+  - `checkModules` тест (`KoinGraphCheckTest`) проверяет, что граф консистентен.
+  - `koinApplication { printLogger() }` можно включить точечно.
+- Неправильный scope/single:
+  - Утечка состояния между экранами ⇒ используйте `scoped`.
+  - Частое создание тяжёлых зависимостей ⇒ переключиться на `single`.
 
-## Чек-лист перед код-ревью
+## Тестирование Koin
 
-- [ ] Нет `GlobalScope`, все корутины висят на переданном scope.
-- [ ] Ошибки изолированы через `supervisorScope`/`SupervisorJob`, где это оправдано.
-- [ ] Таймауты стоят на потенциально долгих операциях.
-- [ ] Отмена не логируется как ошибка, ресурсы чистятся в `finally` + `NonCancellable`.
-- [ ] Нет лишних `withContext`; диспетчеры выбраны по типу работы.
-- [ ] Потоки данных используют подходящий тип (`StateFlow`/`SharedFlow`/`Channel`) и backpressure.
-- [ ] Fan-out/fan-in реализован через `async/awaitAll` без утечек.
-- [ ] Тесты покрывают отмену, таймаут, supervisor и поведение Flow.
+- Unit-тест с подменой зависимостей: `UserViewModelTest` — использует `KoinTestRule` и `module(override = true)` для моков.
+- Моки/override: `modules(override = true)` или передача списка модулей в `KoinTestRule`.
+- Проверка графа: `KoinGraphCheckTest` использует `checkModules`.
+- Инструментальный тест: `KoinInstrumentationSmokeTest` показывает запуск/остановку Koin на устройстве.
+- Тестовые диспетчеры: в тестах ViewModel используется `StandardTestDispatcher` + `Dispatchers.setMain`.
+
+## Практические задания
+
+1. Добавить новый use case (`ObserveTasksUseCase`) и подключить в `featureTasksModule`.
+2. Сделать новый scope для экрана “EditProfile” с собственной зависимостью (например, валидатор).
+3. Передать параметры в другой ViewModel (новый `UserPostsViewModel(postId)`), используя `parametersOf`.
+4. Добавить локальный источник данных (кэш) и переключить `UserRepositoryImpl` на комбинированный data source.
+5. Написать UI-тест, который проверяет отображение `UserUiState.Error`.
+6. Включить `printLogger()` в debug-сборке и отловить `NoBeanDefFoundException` при удалении модуля.
+7. Расширить `TaskWizardTracker` и показать, как закрытие scope очищает состояние.
+
+## Как запустить
+
+1. Установить Android SDK (compile/target 34, minSdk 24) и задать `sdk.dir` в `local.properties`.
+2. Собрать проект:
+   - `./gradlew :app:assembleDebug`
+3. Unit-тесты (koin-test, coroutines-test):
+   - `./gradlew :app:test`
+4. Инструментальные тесты:
+   - `./gradlew :app:connectedAndroidTest`
+5. Запустить приложение на эмуляторе/устройстве:
+   - `./gradlew :app:installDebug`
+
+> Если запускаете в среде без Android SDK, сборка и `connectedAndroidTest` будут недоступны.

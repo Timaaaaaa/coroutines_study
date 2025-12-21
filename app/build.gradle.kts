@@ -1,41 +1,94 @@
-import org.gradle.api.tasks.JavaExec
-
 plugins {
-    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
 }
 
-kotlin {
-    jvmToolchain(21)
+android {
+    namespace = "com.way.samurai.koinstudy"
+    compileSdk = 34
+
+    defaultConfig {
+        applicationId = "com.way.samurai.koinstudy"
+        minSdk = 24
+        targetSdk = 34
+        versionCode = 1
+        versionName = "1.0.0"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary = true
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+    buildFeatures {
+        compose = true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.15"
+    }
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
 }
 
 dependencies {
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.material3)
+
     implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.kotlinx.coroutines.debug)
-    implementation(libs.kotlinx.coroutines.test)
+    implementation(libs.kotlinx.coroutines.android)
+
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.compose)
+    implementation(libs.koin.androidx.viewmodel)
+
+    implementation(libs.retrofit.core)
+    implementation(libs.retrofit.moshi)
+    implementation(libs.retrofit.logging)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.test)
-}
+    testImplementation(libs.koin.test)
+    testImplementation(libs.koin.test.junit4)
+    testImplementation(libs.junit)
 
-val lessonMains = mapOf(
-    "LessonsPage" to "com.way.samurai.LessonsPage",
-    "Lesson01Basics" to "com.way.samurai.lessons.Lesson01BasicsLauncher",
-    "Lesson02Context" to "com.way.samurai.lessons.Lesson02ContextLauncher",
-    "Lesson03Cancellation" to "com.way.samurai.lessons.Lesson03CancellationLauncher",
-    "Lesson04Structured" to "com.way.samurai.lessons.Lesson04StructuredLauncher",
-    "Lesson05Exceptions" to "com.way.samurai.lessons.Lesson05ExceptionsLauncher",
-    "Lesson06FlowVsChannel" to "com.way.samurai.lessons.Lesson06FlowVsChannelLauncher",
-    "Lesson07ConcurrencyPrimitives" to "com.way.samurai.lessons.Lesson07ConcurrencyPrimitivesLauncher",
-    "Lesson08Performance" to "com.way.samurai.lessons.Lesson08PerformanceLauncher",
-    "Lesson09Testing" to "com.way.samurai.lessons.Lesson09TestingLauncher",
-    "Lesson10AndroidPatterns" to "com.way.samurai.lessons.Lesson10AndroidPatternsLauncher",
-)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.ui.test.junit4)
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.koin.test)
 
-lessonMains.forEach { (taskName, mainClassName) ->
-    tasks.register<JavaExec>("run$taskName") {
-        group = "application"
-        description = "Runs $taskName examples"
-        classpath = sourceSets["main"].runtimeClasspath
-        mainClass.set(mainClassName)
-    }
+    debugImplementation(libs.androidx.ui.tooling)
+    debugImplementation(libs.androidx.ui.test.manifest)
 }
